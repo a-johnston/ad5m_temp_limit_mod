@@ -54,7 +54,7 @@ $ iht diff Eboard-20231012_original.hex Eboard-20231012.hex --disasm
 -11702B80 : STRB R1, R2, #0 / STRH R3, R5, #0
 ```
 
-While the disassembled output is simplified, it accurately shows which instructions have been converted to the no-op `MOV R0, R0`.
+While the disassembled output is simplified, it accurately shows which instructions have been patched to the no-op `MOV R0, R0`.
 
 If using Binary Ninja, the raw binary file does not include offset or start address information. This can be read from the original hex file and included when converting the binary file:
 
