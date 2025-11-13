@@ -67,6 +67,4 @@ update_control
 sync
 cat $WORK_DIR/end.img > /dev/fb0
 
-$WORK_DIR/play
-
 exit 0
