@@ -4,9 +4,6 @@ set -x
 WORK_DIR=`dirname $0`
 RUN_DIR="/opt/PROGRAM"
 
-MACHINE=Adventurer5M
-PID=0023
-
 CHECH_ARCH=`uname -m`
 if [ "${CHECH_ARCH}" != "armv7l" ];then
     echo "Machine architecture error."
@@ -34,10 +31,10 @@ update_control()
 			rm -rf ${temp_dir}
 		fi
 		mkdir -p ${temp_dir}
-		tar -xvf ${file_name} -C ${temp_dir}
+		xz -dc ${file_name} | tar -xf - -C ${temp_dir}
 		sync
 		cd ${temp_dir}
-		md5sum -s -c md5sum.list
+		md5sum -c md5sum.list
 		if [ $? -eq 0 ];then
 			cd ..
 			ls | grep -v temp | xargs rm -rf
@@ -45,10 +42,11 @@ update_control()
 			mv temp ${control_version}
 			sync
 			cd ${control_version}
-			#if [ -f run.sh ];then
-			#	${RUN_DIR}/control/${control_version}/run.sh
-			#fi
+			if [ -f run.sh ];then
+				${RUN_DIR}/control/${control_version}/run.sh
+			fi
 		else
+			echo "MD5 mismatch, quitting without updating"
 			cd ..
 			rm -rf temp
 		fi
@@ -66,5 +64,6 @@ update_control
 
 sync
 cat $WORK_DIR/end.img > /dev/fb0
+echo "Done!"
 
 exit 0
