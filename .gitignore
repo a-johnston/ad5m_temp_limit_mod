@@ -1,4 +1,4 @@
-start.img
-end.img
+*.img
 *.tgz
 *.tar.xz
+*.hex

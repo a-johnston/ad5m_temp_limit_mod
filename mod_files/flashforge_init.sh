@@ -1,69 +1,64 @@
-#!/bin/sh
-set -x
+#!/bin/bash
+set -euxo pipefail
 
-WORK_DIR=`dirname $0`
-RUN_DIR="/opt/PROGRAM"
+BASE_DIR=`dirname $0`
+SCREENS=${BASE_DIR}/screens
+state=0
 
-CHECH_ARCH=`uname -m`
-if [ "${CHECH_ARCH}" != "armv7l" ];then
-    echo "Machine architecture error."
-    echo ${CHECH_ARCH}
+trap on_exit EXIT
+
+on_exit() {
+    if [ $state -eq 0 ];then
+        cat ${SCREENS}/fail.img > /dev/fb0
+    fi
+    if [ $state -eq 1 ];then
+        cat ${SCREENS}/iap_fail.img > /dev/fb0
+    fi
+    if [ $state -eq 2 ];then
+        cat ${SCREENS}/end.img > /dev/fb0
+    fi
+}
+
+TARGET_VERSION="2.2.3"
+CONTROL_DIR="/opt/PROGRAM/control/${TARGET_VERSION}"
+
+EBOARD_FILE="${CONTROL_DIR}/Eboard-20231012.hex"
+ORIGINAL_MD5="d378a3ad94da99d72a854ff20de356aa"
+NEW_MD5="1697c5d3044c8b8eac4875c4a5ed6118"
+
+cat ${SCREENS}/start.img > /dev/fb0
+
+if [ ! -d "${CONTROL_DIR}" ];then
+    echo "Need control version ${TARGET_VERSION}, quitting without patching"
+    exit 1
+fi
+if [ ! -f "${CONTROL_DIR}/IAPCommand" ];then
+    echo "Missing IAPCommand, quitting without patching"
+    exit 1
+fi
+if [ ! -f "${EBOARD_FILE}" ];then
+    echo "Missing base firmware, quitting without patching"
     exit 1
 fi
 
-update_control()
-{
-	echo "update control"
-	cd $WORK_DIR
-	start_head="control-"
-	end_tail=".tar.xz"
-	ls -1t ${start_head}*${end_tail}
-	if [ $? -eq 0 ];then
-		file_name=`ls -1t ${start_head}*${end_tail} | head -n 1`
-		version_length=`expr ${#file_name} - ${#start_head} - ${#end_tail}`
-		control_version=${file_name:${#start_head}:${version_length}}
-		echo "${control_version}"
-		if [ ! -d ${RUN_DIR}/control ];then
-			mkdir -p ${RUN_DIR}/control
-		fi
-		temp_dir=${RUN_DIR}/control/temp
-		if [ -d ${temp_dir} ];then
-			rm -rf ${temp_dir}
-		fi
-		mkdir -p ${temp_dir}
-		xz -dc ${file_name} | tar -xf - -C ${temp_dir}
-		sync
-		cd ${temp_dir}
-		md5sum -c md5sum.list
-		if [ $? -eq 0 ];then
-			cd ..
-			ls | grep -v temp | xargs rm -rf
-			sync
-			mv temp ${control_version}
-			sync
-			cd ${control_version}
-			if [ -f run.sh ];then
-				${RUN_DIR}/control/${control_version}/run.sh
-			fi
-		else
-			echo "MD5 mismatch, quitting without updating"
-			cd ..
-			rm -rf temp
-		fi
-	fi
-}
+echo "Checking original file"
+echo "${ORIGINAL_MD5}  ${EBOARD_FILE}" | md5sum -c
 
-if [ ! -d ${RUN_DIR} ];then
-	mkdir -p ${RUN_DIR}
-fi
+echo "Creating patched file"
+python ${BASE_DIR}/scripts/intel_hex_tool.py write ${EBOARD_FILE} ${EBOARD_FILE}.new --patch ${BASE_DIR}/patch.txt
+sync
+
+echo "Checking patched file"
+echo "${NEW_MD5}  ${EBOARD_FILE}.new" | md5sum -c
+
+echo "Applying patch"
+mv ${EBOARD_FILE} ${EBOARD_FILE}.old
+mv ${EBOARD_FILE}.new ${EBOARD_FILE}
+chmod a+x $WORK_DIR/IAPCommand
+sync
+${CONTROL_DIR}/IAPCommand ${EBOARD_FILE} /dev/ttyS1
 
 sync
-cat $WORK_DIR/start.img > /dev/fb0
-
-update_control
-
-sync
-cat $WORK_DIR/end.img > /dev/fb0
-echo "Done!"
+echo "Finished upgrade"
 
 exit 0

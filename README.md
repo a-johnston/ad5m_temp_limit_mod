@@ -1,7 +1,7 @@
 > [!CAUTION]
 > This is a basically untested mod! There are no guarantees of stability or safety, especially as this mod explicitly removes a safety check from the printer - the thermistor used in virtually all AD5M hotends is not meant to go past 300C and the ADC in the eboard MCU may also struggle with precision for such low resistance values. It is recommended to use a hotend with a different thermistor and a custom temp table for temperatures above 300C. Additionally, the other components and materials used in the AD5M may be insufficient for temperatures above 280C. When using this mod, always monitor the printer while it's active and check the hardware after use to ensure there is no degradation from high temperatures.
 
-This is a firmware mod to disable the eboard temperature limit for the Adventurer 5M. Currently supported firmware versions are 2.4.5 through 3.1.9 (current at time of writing), or any version with control version 2.2.3.
+This is a firmware mod to disable the eboard temperature limit for the Adventurer 5M. Currently supported firmware versions are 2.4.5 through 3.2.3 (current at time of writing), or any version with control version 2.2.3.
 
 ## Installation
 
